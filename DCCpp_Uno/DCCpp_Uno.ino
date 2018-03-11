@@ -229,8 +229,8 @@ void setup(){
 
   EEStore::init();                                          // initialize and load Turnout and Sensor definitions stored in EEPROM
 
-  pinMode(A5,INPUT);                                       // if pin A5 is grounded upon start-up, print system configuration and halt
-  digitalWrite(A5,HIGH);
+  pinMode(DUMP_CONFIG_PING,INPUT);                                       // if pin A5 is grounded upon start-up, print system configuration and halt
+  digitalWrite(DUMP_CONFIG_PING,HIGH);
   if(!digitalRead(A5))
     showConfiguration();
 
@@ -281,8 +281,10 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER1 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER1 927
 
+#ifndef NOT_NEED_JUMPER_FOR_SHIELD  
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_A,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_A,LOW);
+#endif
 
   pinMode(DCC_SIGNAL_PIN_MAIN, OUTPUT);      // THIS ARDUINO OUPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-A OF MOTOR CHANNEL-A
 
@@ -321,9 +323,11 @@ void setup(){
 
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER0 28
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER0 14
-  
+
+#ifndef NOT_NEED_JUMPER_FOR_SHIELD  
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
+#endif
 
   pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
 
@@ -360,8 +364,10 @@ void setup(){
   #define DCC_ONE_BIT_TOTAL_DURATION_TIMER3 1855
   #define DCC_ONE_BIT_PULSE_DURATION_TIMER3 927
 
+#ifndef NOT_NEED_JUMPER_FOR_SHIELD  
   pinMode(DIRECTION_MOTOR_CHANNEL_PIN_B,INPUT);      // ensure this pin is not active! Direction will be controlled by DCC SIGNAL instead (below)
   digitalWrite(DIRECTION_MOTOR_CHANNEL_PIN_B,LOW);
+#endif
 
   pinMode(DCC_SIGNAL_PIN_PROG,OUTPUT);      // THIS ARDUINO OUTPUT PIN MUST BE PHYSICALLY CONNECTED TO THE PIN FOR DIRECTION-B OF MOTOR CHANNEL-B
 

@@ -22,6 +22,34 @@ Part of DCC++ BASE STATION for the Arduino
 #include "EEStore.h"
 #include "Comm.h"
 
+
+// FOR KEYPAD
+// Based on the work COPYRIGHT (c) 2013-2015 Gregg E. Berman
+
+#ifdef USE_KEYPAD
+
+#include <Wire.h>
+#include <Adafruit_RGBLCDShield.h>
+#include <utility/Adafruit_MCP23017.h>
+#define BUTTON_NONE 0x00
+Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
+char disp[15];
+char pwron  []="1";
+char pwroff []="0";
+int lcdpos[]= {7,15,17,19,21,23,25,27,29,31 };
+int vars []= {0,0,0,0,0,0,0,0,0,0};  //address,speed, F0,1,2,3,4,5,6,7
+char ftn [] = {'-','+'};
+int cpos,lcol,lline;
+int cindex=0;
+byte functs = 0;
+char locodir ='1';
+boolean power;
+int buttonPressed;
+int lastbuttonstate=BUTTON_NONE;
+#define num_vars 10
+
+#endif
+
 extern int __heap_start, *__brkval;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,6 +66,21 @@ void SerialCommand::init(volatile RegisterList *_mRegs, volatile RegisterList *_
   pRegs=_pRegs;
   mMonitor=_mMonitor;
   sprintf(commandString,"");
+
+  // Keypad init
+  lastbuttonstate = BUTTON_NONE;
+  lcd.begin(16, 2);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("OFF 0000 SPD>000");
+  lcd.setCursor(0,1);
+  lcd.print("F0 1 2 3 4 5 6 7");
+  lcd.setCursor(7,0);
+  locodir ='1';
+  cindex=0;
+  power= false;
+  delay (40);
+  
 } // SerialCommand:SerialCommand
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -74,6 +117,168 @@ void SerialCommand::process(){
     }
 
   #endif
+
+  #ifdef USE_KEYPAD
+
+    buttonPressed = lcd.readButtons();
+    if (lastbuttonstate != BUTTON_NONE) { //we holding a button down
+      if (buttonPressed == BUTTON_NONE) {
+        lastbuttonstate = BUTTON_NONE;     //OK Button now released
+        return;
+        }
+        else return;                      //Button not yet released
+    }
+    if (buttonPressed == BUTTON_NONE) return; //No new button pressed
+    lastbuttonstate=buttonPressed;
+    switch (buttonPressed)  {
+      case BUTTON_UP:
+        vars[cindex]=vars[cindex]+1;
+        switch (cindex) {
+          case 0:
+            if (vars[0]>9997) vars[0]=9997;
+            lcd.setCursor(4,0);
+            sprintf(disp,"%04d",vars[0]);
+            lcd.print(disp);
+            break;
+          case 1:
+            if (vars[1]>127) vars[1]=127;
+            lcd.setCursor(13,0);
+            sprintf(disp,"%03d",vars[1]);
+            lcd.print(disp);
+            sprintf(disp,"t1 %d %d %c",vars[0],vars[1],locodir);
+            parse(disp);
+            break;
+          default :
+            vars[cindex]=1;
+            lcd.setCursor(lcdpos[cindex]-17,1);
+            lcd.print("+");
+            functs= 128 + vars[3] + vars[4]*2 + vars[5]*4 + vars[6]*8 + vars[2]*16 ;
+            sprintf(disp,"f%d %d",vars[0],functs);
+            parse(disp);
+        }
+      break;
+      case BUTTON_DOWN:
+         vars[cindex]=vars[cindex]-1;
+         switch (cindex) {
+          case 0:
+            if (vars[0]<1) vars[0]=1;
+            lcd.setCursor(4,0);
+            sprintf(disp,"%04d",vars[0]);
+            lcd.print(disp);
+            break;
+          case 1:
+            if (vars[1]<0) vars[1]=0;
+            lcd.setCursor(13,0);
+            sprintf(disp,"%03d",vars[1]);
+            lcd.print(disp);
+            sprintf(disp,"t1 %d %d %c",vars[0],vars[1],locodir);
+            parse(disp);
+            break;
+          default :
+            vars[cindex]=0;
+            lcd.setCursor(lcdpos[cindex]-17,1);
+            lcd.print("-");
+            functs= 128 + vars[3] + vars[4]*2 + vars[5]*4 + vars[6]*8 + vars[2]*16 ;
+            sprintf(disp,"f%d %d",vars[0],functs);
+            parse(disp);
+        }
+      break;
+      case BUTTON_RIGHT:
+        cindex=cindex+1;
+        if (cindex >= num_vars) cindex=0;
+        lcol =lcdpos[cindex];
+        lline=0;
+        if (lcol>15) {
+          lline=1;
+          lcol= lcol-16;
+        }
+        lcd.setCursor(lcol,lline);
+      break;
+      case BUTTON_LEFT:
+        cindex=cindex-1;
+        if (cindex <0) cindex=num_vars-1;
+        lcol =lcdpos[cindex];
+        lline=0;
+        if (lcol>15) {
+          lline=1;
+          lcol= lcol-16;
+        }
+        lcd.setCursor(lcol,lline);
+      break;
+      case BUTTON_SELECT:  {
+        lcd.setCursor(0,0);
+        lcd.print("SEL");
+        for (int i=0; i<32766; i++)  {
+          delay(1);
+          buttonPressed = lcd.readButtons();
+          if (buttonPressed == BUTTON_NONE) break;      //wait for second button
+        }
+        for (int i=0; i<32766; i++)  {
+          delay(1);
+          buttonPressed = lcd.readButtons();
+          if (buttonPressed != BUTTON_NONE) break;      //wait for second button
+        }
+        
+         switch (buttonPressed)  {
+           case BUTTON_UP:
+              power= true;    //power ON
+              //pwron="1";
+              parse (pwron);
+              lcd.setCursor(0,0);
+              lcd.print("ADR");
+              lcd.setCursor(12,0);
+              if (locodir='1')  lcd.print(">");
+                else lcd.print("<");
+              lcd.blink();
+              cindex=0;
+              lcd.setCursor(4,0);
+              sprintf(disp,"%04d",vars[0]);
+              lcd.print(disp);
+           break;
+           case BUTTON_DOWN:
+             power= false;
+             parse(pwroff);      // power OFF
+             cindex=0;
+             lcd.setCursor(0,0);
+             lcd.print("OFF");
+             lcd.noBlink();
+           break;
+           case BUTTON_RIGHT:
+             locodir ='1';
+             sprintf(disp,"t1 %d %d %c",vars[0],vars[1],locodir);
+             parse(disp);
+             lcd.setCursor(0,0);
+             lcd.print("ADR");
+             lcd.setCursor(12,0);
+             lcd.print(">");
+             cindex=1;
+             lcd.setCursor(15,0);
+           break;
+           case BUTTON_LEFT:
+             locodir ='0';
+             sprintf(disp,"t1 %d %d %c",vars[0],vars[1],locodir);
+             parse(disp);
+             lcd.setCursor(0,0);
+             lcd.print("ADR");
+             lcd.setCursor(12,0);
+             lcd.print("<");
+             cindex=1;
+             lcd.setCursor(15,0);
+           break;
+          }
+        break;
+    
+      }
+      for (int i=0; i<32766; i++)  {
+          delay(2);
+          buttonPressed = lcd.readButtons();
+          if (buttonPressed == BUTTON_NONE) break;      //wait for second button
+        }
+    }
+
+
+  #endif  // USE_KEYPAD
+
 
 } // SerialCommand:process
    
