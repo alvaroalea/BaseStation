@@ -1,3 +1,15 @@
+What is this Fork
+-----------------
+
+In this link to a forum:
+http://model-railroad-hobbyist.com/node/27318
+it's posible to download a fork of the DCC++ command station that use a keypad an 16x2 LCD to managed the BaseStation.
+
+As far A I know, for this modification he remove the serial comunication, also use a LcdKeyPad library I can not locate.
+
+So, I update it to use adafruit Library, (BTW it use only I2C, not the analog pin) and restore serial comunication.
+I'm on the way to use a external motor shield based on L298N, in this way I will free a pair of pins for other use.
+
 What’s DCC++
 ------------
 
