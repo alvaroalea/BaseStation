@@ -24,7 +24,7 @@ Part of DCC++ BASE STATION for the Arduino
 
 
 // FOR KEYPAD
-// Based on the work COPYRIGHT (c) 2013-2015 Gregg E. Berman
+// Based on the work found here: http://model-railroad-hobbyist.com/node/27318
 
 #ifdef USE_KEYPAD
 
@@ -68,6 +68,7 @@ void SerialCommand::init(volatile RegisterList *_mRegs, volatile RegisterList *_
   sprintf(commandString,"");
 
   // Keypad init
+#ifdef USE_KEYPAD
   lastbuttonstate = BUTTON_NONE;
   lcd.begin(16, 2);
   lcd.clear();
@@ -80,7 +81,7 @@ void SerialCommand::init(volatile RegisterList *_mRegs, volatile RegisterList *_
   cindex=0;
   power= false;
   delay (40);
-  
+#endif  
 } // SerialCommand:SerialCommand
 
 ///////////////////////////////////////////////////////////////////////////////
